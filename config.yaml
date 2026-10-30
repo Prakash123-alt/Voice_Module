@@ -1,0 +1,80 @@
+# All thresholds are tunable. Values in ms unless noted.
+
+audio:
+  sample_rate: 16000
+  frame_ms: 20
+  input_device: "Realtek"     # null = system default; or index / name substring
+  output_device:
+  input_gain: 1.0
+  output_gain: 1.0
+
+aec:
+  enabled: true
+  backend: webrtc             # webrtc (AEC3, recommended) | speex | gate | none (headphones)
+  filter_length_ms: 200       # speex only: echo tail length
+  delay_ms: auto              # auto | integer. Playback->capture delay (webrtc: hint; speex: alignment)
+  max_delay_ms: 400
+  auto_estimate_min_s: 1.0    # seconds of overlapping play/capture needed for estimation
+  gate_when_speaking_if_unavailable: true
+
+denoise:
+  backend: rnnoise            # rnnoise | deepfilternet | none
+
+vad:
+  threshold: 0.5              # Silero speech prob
+  min_speech_ms: 120          # speech must persist this long to start a segment
+  hangover_ms: 500            # silence needed to end a segment (avoids clipping)
+  pad_ms: 200                 # pre-roll kept before speech onset
+  max_segment_s: 20
+
+speaker:
+  backend: resemblyzer        # resemblyzer | ecapa
+  profile_path: profile/voice.npy
+  threshold: 0.663             # cosine similarity; see calibrate.py. Real use: you ≈0.76-0.86, other ≤0.69
+  min_segment_ms: 400         # shorter segments are ignored (unreliable embeddings)
+
+barge_in:
+  enabled: true
+  min_speech_ms: 150          # 150 ms catches short words like "stop" (was 250)
+  verify_window_ms: 800       # audio window used for the interrupt embedding (was 1000)
+  threshold: 0.40             # explicit floor; short words score ~0.5, so relax below that
+
+stt:
+  mode: local                 # openrouter | local
+  openrouter_model: google/gemini-2.5-flash
+  local_model: base.en        # faster-whisper size: tiny.en | base.en | small.en | ...
+  local_compute_type: int8
+  language: en
+
+llm:
+  model: xiaomi/mimo-v2.6-flash   # verified on OpenRouter /models; `python main.py --check` re-verifies
+  system_prompt: >-
+    You are a concise, friendly voice assistant. Your replies are spoken aloud, so use plain
+    conversational text only: no markdown, bullet points, emojis, code or URLs. Answer in 1-3 short
+    sentences unless asked for detail.
+  max_tokens: 400
+  temperature: 0.7
+  history_turns: 10
+  extra_body:                 # raw OpenRouter params passed through
+    reasoning: {enabled: false}   # MiMo reasons by default (+~0.8 s to first token); off is better for voice
+    provider: {sort: latency}     # route to the fastest serving provider for this model
+
+tts:
+  mode: local                 # openrouter | local
+  openrouter_model: openai/gpt-audio-mini
+  openrouter_voice: alloy
+  piper_model: models/en_US-lessac-medium.onnx
+  piper_speaker:
+  min_chunk_chars: 12         # merge tiny sentence chunks before TTS
+
+openrouter:
+  base_url: https://openrouter.ai/api/v1
+  timeout_s: 30
+  connect_timeout_s: 10
+  max_retries: 3
+  backoff_base_s: 0.5
+  backoff_max_s: 8.0
+
+logging:
+  level: INFO
+  json: false

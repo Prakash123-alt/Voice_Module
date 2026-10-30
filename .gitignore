@@ -1,0 +1,12 @@
+.env
+__pycache__/
+*.pyc
+.pytest_cache/
+.benchmarks/
+models/
+*.onnx
+*.log
+profile/*.npy
+profile/*.json
+profile/*.wav
+!profile/.gitkeep

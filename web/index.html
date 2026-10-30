@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>VoiceModule Live</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  :root { --bg:#0b1220; --card:#131c30; --fg:#e6edf7; --mut:#8aa0bf; --acc:#60a5fa; --ok:#34d399; --warn:#f59e0b; --err:#f87171; }
+  * { box-sizing:border-box; margin:0 }
+  body { background:var(--bg); color:var(--fg); font:15px/1.5 system-ui,sans-serif; display:flex; justify-content:center; padding:24px }
+  main { width:min(760px,100%); display:flex; flex-direction:column; gap:14px }
+  .card { background:var(--card); border-radius:14px; padding:18px }
+  #orb { width:120px; height:120px; border-radius:50%; margin:8px auto; display:grid; place-items:center;
+         background:radial-gradient(circle,#22304f,#131c30); transition:box-shadow .25s }
+  #orb .dot { width:56px; height:56px; border-radius:50%; background:#64748b; transition:all .25s }
+  #orb.listening .dot { background:var(--acc); box-shadow:0 0 30px #60a5fa88; animation:pulse 1.4s infinite }
+  #orb.processing .dot { background:var(--warn); animation:spin 1s infinite }
+  #orb.speaking .dot { background:var(--ok); box-shadow:0 0 30px #34d39988; animation:pulse .8s infinite }
+  #orb.ducked .dot { background:var(--ok); opacity:.35 }
+  @keyframes pulse { 50% { transform:scale(1.18) } }
+  @keyframes spin { to { transform:rotate(360deg) } }
+  #state { text-align:center; font-size:20px; font-weight:600 }
+  #hint { text-align:center; color:var(--mut); font-size:13px }
+  #chat { height:320px; overflow-y:auto; display:flex; flex-direction:column; gap:8px }
+  .msg { max-width:85%; padding:8px 12px; border-radius:12px; white-space:pre-wrap }
+  .msg.user { align-self:flex-end; background:#2b3a5c }
+  .msg.assistant { align-self:flex-start; background:#1d2947 }
+  .msg .meta { font-size:11px; color:var(--mut); margin-top:4px }
+  .row { display:flex; gap:10px; align-items:center }
+  button { background:var(--acc); color:#06121f; border:0; border-radius:10px; padding:9px 16px; font-weight:600; cursor:pointer }
+  button.ghost { background:#22304f; color:var(--fg) }
+  button:disabled { opacity:.4; cursor:default }
+  #micBar { flex:1; height:8px; background:#22304f; border-radius:4px; overflow:hidden }
+  #micFill { height:100%; width:0; background:var(--acc); transition:width .08s }
+  .small { font-size:12px; color:var(--mut) }
+  #chips { display:flex; flex-wrap:wrap; gap:6px }
+  .chip { font-size:11px; padding:2px 8px; border-radius:20px; background:#22304f }
+  .chip.you { background:#14532d; color:#86efac } .chip.other { background:#5b1f1f; color:#fca5a5 }
+  .chip.barge { background:#59320c; color:#fdba74 }
+</style>
+</head>
+<body>
+<main>
+  <div class="card">
+    <canvas id="scope" style="width:100%;height:180px;border-radius:10px;display:block"></canvas>
+    <div class="row" style="justify-content:center;margin-top:8px">
+      <button class="ghost" id="vizBtn" style="font-size:12px;padding:4px 10px">style: crt</button>
+    </div>
+    <div id="orb" style="display:none"><div class="dot"></div></div>
+    <div id="state" style="margin-top:4px">Idle</div>
+    <div id="hint">Press Start and just talk — I'll stop by myself if you speak over me.</div>
+  </div>
+  <div class="card row">
+    <button id="startBtn">▶ Start</button>
+    <div id="micBar"><div id="micFill"></div></div>
+    <span id="micDb" class="small">—</span>
+  </div>
+  <div class="card"><div id="chips"><span class="small">speaker decisions appear here</span></div></div>
+  <div class="card"><div id="chat"></div></div>
+  <div class="small" id="conn">disconnected</div>
+</main>
+<script src="/static/pitch.js"></script>
+<script src="/static/visualizer.js"></script>
+<script src="/static/app.js"></script>
+</body>
+</html>

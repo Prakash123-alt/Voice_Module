@@ -1,0 +1,208 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>VoiceModule</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><circle cx='16' cy='16' r='14' fill='%2360a5fa'/></svg>" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-orb"></div>
+      <div><div class="brand-name">VoiceModule</div><div class="brand-sub">local voice assistant</div></div>
+    </div>
+    <nav>
+      <button class="nav-item active" data-view="live"><svg viewBox="0 0 24 24"><path d="M12 3a3 3 0 0 1 3 3v6a3 3 0 0 1-6 0V6a3 3 0 0 1 3-3zm-7 9h2a5 5 0 0 0 10 0h2a7 7 0 0 1-6 6.92V21h-2v-2.08A7 7 0 0 1 5 12z"/></svg>Live</button>
+      <button class="nav-item" data-view="metrics"><svg viewBox="0 0 24 24"><path d="M4 19h16v2H2V3h2v16zm3-2V10h3v7H7zm5 0V6h3v11h-3zm5 0v-4h3v4h-3z"/></svg>Metrics</button>
+      <button class="nav-item" data-view="enroll"><svg viewBox="0 0 24 24"><path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zm0 2c-4 0-8 2-8 5v1h10.1a6 6 0 0 1 3.4-5.6A12 12 0 0 0 12 14zm6 1-3.5 3.5 1.4 1.4L18 17.8l3.6 3.6 1.4-1.4z"/></svg>Voice profile</button>
+      <button class="nav-item" data-view="settings"><svg viewBox="0 0 24 24"><path d="M19.4 13a7.7 7.7 0 0 0 0-2l2.1-1.6-2-3.4-2.5 1a7.3 7.3 0 0 0-1.7-1L15 3h-4l-.4 2.6a7.3 7.3 0 0 0-1.7 1l-2.5-1-2 3.4L6.6 11a7.7 7.7 0 0 0 0 2l-2.1 1.6 2 3.4 2.5-1c.5.4 1.1.7 1.7 1L11 21h4l.4-2.6c.6-.3 1.2-.6 1.7-1l2.5 1 2-3.4zM13 15.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7z" transform="translate(-1)"/></svg>Settings</button>
+      <button class="nav-item" data-view="logs"><svg viewBox="0 0 24 24"><path d="M4 4h16v2H4zm0 5h16v2H4zm0 5h10v2H4zm0 5h16v2H4z"/></svg>Logs</button>
+    </nav>
+    <div class="sidebar-foot">
+      <div class="conn"><span id="connDot" class="dot"></span><span id="connText">connecting…</span></div>
+      <button id="themeBtn" class="ghost small" title="Toggle theme" aria-label="Toggle theme">◐</button>
+    </div>
+  </aside>
+
+  <main>
+    <header class="topbar">
+      <div class="topbar-left">
+        <h1 id="viewTitle">Live</h1>
+        <span id="statusPill" class="pill">stopped</span>
+      </div>
+      <div class="topbar-actions">
+        <button id="muteBtn" class="ghost" disabled title="Mute microphone (M)">🎙 Mute</button>
+        <span class="muted small">Say something to interrupt</span>
+        <button id="startBtn" class="primary" title="Start / stop (Ctrl+Space)">▶ Start</button>
+      </div>
+    </header>
+
+    <div id="banner" class="banner hidden"></div>
+
+    <!-- LIVE -->
+    <section id="view-live" class="view active">
+      <div class="live-grid">
+        <div class="col">
+          <div class="card orb-card">
+            <div id="orb" class="orb state-IDLE" role="img" aria-label="assistant state">
+              <div class="orb-core"></div><div class="orb-ring r1"></div><div class="orb-ring r2"></div>
+              <div class="bars"><i></i><i></i><i></i><i></i><i></i></div>
+            </div>
+            <div id="stateLabel" class="state-label">Idle</div>
+            <div id="stateHint" class="state-hint">Press Start to begin listening</div>
+          </div>
+
+          <div class="card">
+            <div class="card-title">Input</div>
+            <div class="meter-row"><span>Mic</span><div class="meter"><div id="micBar" class="meter-fill"></div></div><span id="micDb" class="mono">– dB</span></div>
+            <div class="meter-row"><span>Voice</span><div class="meter"><div id="vadBar" class="meter-fill vad"></div><div id="vadThr" class="meter-thr"></div></div><span id="vadVal" class="mono">–</span></div>
+          </div>
+
+          <div class="card">
+            <div class="card-title row between">Who's speaking <span class="thr-label" id="thrLabel"></span></div>
+            <div id="speakerChips" class="chips"><span class="muted small">Speaker decisions appear here.</span></div>
+          </div>
+
+          <div class="card facts">
+            <div><span class="muted">LLM</span><b id="factLlm">–</b></div>
+            <div><span class="muted">STT</span><b id="factStt">–</b></div>
+            <div><span class="muted">TTS</span><b id="factTts">–</b></div>
+            <div><span class="muted">Echo cancel</span><b id="factAec">–</b></div>
+            <div><span class="muted">Barge-in</span><b id="factBarge">–</b></div>
+            <div><span class="muted">Last reply</span><b id="factLatency">–</b></div>
+          </div>
+        </div>
+
+        <div class="card chat-card">
+          <div class="chat-head">
+            <div class="card-title">Conversation</div>
+            <button id="clearChat" class="ghost small">Clear</button>
+          </div>
+          <div id="chat" class="chat" aria-live="polite">
+            <div class="empty-chat" id="emptyChat">
+              <div class="empty-orb"></div>
+              <p>Start the assistant and just talk.<br/>Or type below, and the reply is spoken aloud.</p>
+            </div>
+          </div>
+          <form id="textForm" class="composer">
+            <input id="textInput" autocomplete="off" placeholder="Type a message… (assistant must be running)" />
+            <button class="primary" type="submit">Send</button>
+          </form>
+        </div>
+      </div>
+    </section>
+
+    <!-- METRICS -->
+    <section id="view-metrics" class="view">
+      <div id="metricCards" class="metric-cards"></div>
+      <div class="card">
+        <div class="card-title">End of speech → first audio, per turn <span class="muted small">(target 1.5 s)</span></div>
+        <canvas id="e2eChart" height="220"></canvas>
+      </div>
+      <div class="card">
+        <div class="card-title">Where the time goes, per turn</div>
+        <div class="legend"><span class="lg stt">STT</span><span class="lg llm">LLM first token</span><span class="lg tts">TTS</span></div>
+        <canvas id="stackChart" height="220"></canvas>
+      </div>
+    </section>
+
+    <!-- ENROLL -->
+    <section id="view-enroll" class="view">
+      <div class="steps">
+        <div class="step active" data-step="1"><b>1</b> Mic check</div>
+        <div class="step" data-step="2"><b>2</b> Record phrases</div>
+        <div class="step" data-step="3"><b>3</b> Threshold</div>
+      </div>
+
+      <div class="card enroll-pane" id="enroll1">
+        <h2>Check your microphone</h2>
+        <p class="muted">Sit where you normally will and speak at your usual volume. Using: <b id="enrollDevice">–</b> (change it in Settings → Audio).</p>
+        <div class="big-meter"><div id="micTestBar" class="meter-fill"></div><div class="big-meter-zone quiet" title="too quiet"></div></div>
+        <div class="row gap">
+          <button id="micTestBtn" class="primary">Test mic (3 s)</button>
+          <span id="micTestResult" class="muted"></span>
+        </div>
+        <div class="row end"><button id="toStep2" class="primary">Next →</button></div>
+      </div>
+
+      <div class="card enroll-pane hidden" id="enroll2">
+        <div class="row between">
+          <h2>Read each phrase aloud</h2>
+          <div class="progress-dots" id="takeDots"></div>
+        </div>
+        <div class="phrase-card">
+          <div class="phrase-n" id="phraseN">Phrase 1</div>
+          <div class="phrase" id="phraseText">…</div>
+        </div>
+        <div class="record-zone">
+          <button id="recordBtn" class="record-btn" aria-label="Record phrase">
+            <svg viewBox="0 0 120 120"><circle class="rb-track" cx="60" cy="60" r="54"/><circle id="recordRing" class="rb-ring" cx="60" cy="60" r="54"/></svg>
+            <span id="recordLabel">Record</span>
+          </button>
+          <div class="meter wide"><div id="enrollBar" class="meter-fill"></div></div>
+          <div id="takeMsg" class="muted center">Press Record and start speaking right away (4 seconds).</div>
+        </div>
+        <div class="row between">
+          <button id="undoTake" class="ghost">↶ Redo last</button>
+          <button id="finishEnroll" class="primary" disabled>Finish (need 5)</button>
+        </div>
+      </div>
+
+      <div class="card enroll-pane hidden" id="enroll3">
+        <h2>Speaker threshold</h2>
+        <p class="muted">Each bar is one of your takes, scored against the others. Your voice is accepted when the score is at or above the threshold.
+          Higher = stricter (fewer false accepts, more false rejects).</p>
+        <canvas id="histChart" height="200"></canvas>
+        <div class="threshold-row">
+          <label for="thrSlider">Threshold</label>
+          <input type="range" id="thrSlider" min="0.3" max="0.95" step="0.01" />
+          <b id="thrValue" class="mono">–</b>
+          <span class="muted small" id="thrSuggest"></span>
+        </div>
+        <div id="enrollStats" class="muted small"></div>
+        <div class="row between">
+          <button id="reEnroll" class="ghost">Re-record</button>
+          <button id="applyThr" class="primary">Apply threshold</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- SETTINGS -->
+    <section id="view-settings" class="view">
+      <div class="settings-head card">
+        <div>
+          <div class="card-title">OpenRouter</div>
+          <div class="muted small">API key: <b id="keyState">–</b>. The key is read from <code>.env</code> only and never shown here.</div>
+        </div>
+        <div class="row gap">
+          <button id="checkModels" class="ghost">Verify models</button>
+          <button id="saveSettings" class="primary" disabled>Save</button>
+        </div>
+      </div>
+      <div id="checkResult" class="card hidden"></div>
+      <div id="settingsForm" class="settings-grid"></div>
+    </section>
+
+    <!-- LOGS -->
+    <section id="view-logs" class="view">
+      <div class="card logs-card">
+        <div class="row gap wrap">
+          <select id="logLevel"><option value="DEBUG">All</option><option value="INFO" selected>Info+</option><option value="WARNING">Warnings+</option><option value="ERROR">Errors</option></select>
+          <input id="logSearch" placeholder="Filter…" />
+          <label class="check"><input type="checkbox" id="logFollow" checked /> Follow</label>
+          <span class="spacer"></span>
+          <button id="logDownload" class="ghost small">Download</button>
+          <button id="logClear" class="ghost small">Clear</button>
+        </div>
+        <div id="logList" class="log-list mono"></div>
+      </div>
+    </section>
+  </main>
+</div>
+<div id="toasts" class="toasts" aria-live="assertive"></div>
+<script src="app.js" type="module"></script>
+</body>
+</html>
