@@ -247,6 +247,10 @@ class Controller:
             self._embedder = build_embedder(self.cfg().speaker.backend)
         return self._embedder
 
+    def _live_process(self, audio: np.ndarray) -> np.ndarray:
+        from enroll import live_process
+        return live_process(audio, self.cfg())
+
     def record(self, seconds: float, event: str) -> np.ndarray:
         """Blocking mic capture (run in a thread) that streams levels to the UI as `event`."""
         import sounddevice as sd
@@ -455,7 +459,7 @@ def create_app(cfg_path: str | Path = "config.yaml", env_file: str | Path = ".en
             ctl.busy_audio = False
         ok, problem, level = check_take(audio)
         if ok:
-            ctl.enroll_embs.append(await asyncio.to_thread(ctl.embedder().embed, audio))
+            ctl.enroll_embs.append(await asyncio.to_thread(ctl.embedder().embed, ctl._live_process(audio)))
         return {"ok": ok, "problem": problem, "level_db": round(level, 1), "count": len(ctl.enroll_embs)}
 
     @app.post("/api/enroll/undo")

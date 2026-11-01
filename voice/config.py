@@ -72,6 +72,9 @@ class STTConfig:
     local_model: str = "base.en"
     local_compute_type: str = "int8"
     language: str = "en"
+    beam_size: int = 1                # 1 = greedy (fastest); 5 = more accurate on names
+    initial_prompt: str = ""          # context text that biases whisper's vocabulary/spelling
+    hotwords: str = ""                # comma-separated names/terms to favour (places, people, jargon)
 
 
 @dataclass
@@ -108,6 +111,13 @@ class OpenRouterConfig:
 
 
 @dataclass
+class IsolationConfig:
+    enabled: bool = False                    # SpeakerLock gate in front of VAD/STT (needs its own enrollment)
+    user_id: str = "me"
+    store_dir: str = "~/.speakerlock/users"
+
+
+@dataclass
 class LoggingConfig:
     level: str = "INFO"
     json: bool = False
@@ -121,6 +131,7 @@ class Config:
     vad: VADConfig = field(default_factory=VADConfig)
     speaker: SpeakerConfig = field(default_factory=SpeakerConfig)
     barge_in: BargeInConfig = field(default_factory=BargeInConfig)
+    isolation: IsolationConfig = field(default_factory=IsolationConfig)
     stt: STTConfig = field(default_factory=STTConfig)
     llm: LLMConfig = field(default_factory=LLMConfig)
     tts: TTSConfig = field(default_factory=TTSConfig)

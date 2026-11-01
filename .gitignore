@@ -10,3 +10,7 @@ profile/*.npy
 profile/*.json
 profile/*.wav
 !profile/.gitkeep
+speaker_lock/.coverage
+speaker_lock/src/speakerlock.egg-info/
+*.wav
+!speaker_lock/tests/data/*.wav

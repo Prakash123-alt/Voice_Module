@@ -1,0 +1,50 @@
+# SpeakerLock configuration - every value shown is the built-in default.
+# Use with:  speakerlock --config config.example.yaml <command>
+# or:        Config.from_yaml("config.example.yaml")
+
+frame_ms: 32                     # internal frame size (Silero VAD wants 32 ms at 16 kHz)
+device: cpu                      # cpu | cuda (ONNX Runtime providers)
+store_dir: ~/.speakerlock/users  # enrolled user profiles
+
+vad:
+  backend: silero                # silero | energy (energy needs no model file)
+  threshold: 0.5
+  model_path: null               # null = auto-download Silero ONNX
+
+extractor:
+  backend: voxlock               # voxlock | passthrough (passthrough = no isolation, for tests)
+  precision: int8-full           # voxlock precision variant shipped in the wheel
+  threads: 2
+  model_dir: null                # null = voxlock package default
+
+verifier:
+  backend: dvector-onnx          # dvector-onnx | resemblyzer
+  model_path: null               # null = ~/.speakerlock/models/dvector_ge2e.onnx (scripts/export_onnx.py)
+  threads: 1
+  window_s: 1.6                  # rolling embedding window
+  min_speech_s: 0.6              # speech needed per window before scoring
+  hop_ms: 320                    # re-score interval once the window is full
+  max_age_s: 8.0                 # speech older than this leaves the window
+  turn_gap_ms: 300               # a pause this long (raw-input VAD) starts a new turn
+  turn_min_speech_s: 0.4         # first verdict of a new turn after this much speech
+  turn_hop_ms: 160               # re-score interval until the window has min_speech_s
+
+gate:
+  open_threshold: 0.72           # similarity needed to open
+  close_threshold: 0.62          # hysteresis: stays open down to this score
+  hold_ms: 400                   # keep open this long after the last pass when a score fails
+  fade_ms: 10                    # click-free gain ramp
+  max_failures: 3                # failing windows before on_unverified fires
+  start_open: false
+  closed_set: true               # also require the enrolled target to be the best match
+  other_user_margin: 0.03        # another enrolled user beating target by this much closes at once
+  strict_turns: true             # true: silence every new turn until it verifies (zero leak,
+                                 #       clips ~0.5 s at each turn start - incl. the target's)
+                                 # false: pass the start of a turn for turn_grace_ms (bounded leak)
+  turn_grace_ms: 1000            # non-strict: a new turn may pass this long without a confirming score
+  score_ttl_ms: 2500             # while someone is talking, a passing score must repeat this often
+  grace_gain: 1.0                # gain during the unverified start of a turn (0 = silent, 1 = pass)
+  invert: false                  # true = reverse polarity: mute ONLY the enrolled voice and pass
+                               # everything else (privacy redaction / "mute me" mode)
+  invert: false                  # true = reverse polarity: mute ONLY the enrolled voice and pass
+                               # everything else (privacy redaction / "mute me" mode)

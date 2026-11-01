@@ -17,6 +17,16 @@
 - Model slugs on OpenRouter change: `xiaomi/mimo-v2-flash` and `openai/gpt-4o-audio-preview` no longer exist;
   check with `--check` or `OpenRouterClient.list_models()`.
 
+## SpeakerLock (`speaker_lock/` subpackage)
+- Optional voice-isolation middleware: mic -> VoxLock extraction -> rolling d-vector gate ->
+  only the enrolled user's voice reaches VAD/STT. Enable via `isolation.enabled` in config.yaml.
+- Enroll separately from `profile/voice.npy`: `python -m speakerlock.cli enroll --user me --file <clip>`
+  (run inside `speaker_lock/`; store at `~/.speakerlock/users`).
+- `voice/isolation.py` wraps it in a worker thread (`LiveRunner`); `process_frame` only
+  enqueues/dequeues - never run the extractor on the DSP thread (~30 ms per 32 ms frame here).
+- Package tests: `cd speaker_lock && python -m pytest -q` (~2 min; needs downloaded ONNX models).
+- Benchmark: `python -m speakerlock.cli benchmark` (test set at `~/.speakerlock/testset`).
+
 ## Conventions
 - All cloud AI traffic goes only through `voice/openrouter.py` (`OpenRouterClient`).
 - Each pipeline stage implements an ABC in `voice/interfaces.py`; audio is float32 16 kHz mono, 20 ms frames.

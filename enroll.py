@@ -57,6 +57,18 @@ def check_take(audio: np.ndarray) -> tuple[bool, str, float]:
     return True, "", level
 
 
+def live_process(audio: np.ndarray, cfg) -> np.ndarray:
+    """Run an enrollment take through the same denoiser the live pipeline uses, frame by frame,
+    so the stored embedding matches what arrives during a conversation (the AEC is a no-op
+    without a playback reference). Without this, RNNoise-processed live speech scores
+    systematically lower than raw-enrolled speech."""
+    from voice.denoise import build_denoiser
+    f = int(cfg.audio.frame_ms * cfg.audio.sample_rate / 1000)
+    den = build_denoiser(cfg.denoise.backend, cfg.audio.sample_rate)
+    return np.concatenate([den.process(audio[i:i + f])
+                           for i in range(0, len(audio) - f + 1, f)]).astype(np.float32)
+
+
 def save_profile(embs: list[np.ndarray], cfg) -> dict:
     """Write the centroid + per-take embeddings + metadata. Returns the metadata."""
     centroid = average_embedding(embs)
@@ -98,7 +110,7 @@ def main() -> int:
         elif problem == "clipping":
             print("  Clipping detected - move back from the mic a bit. Retrying this phrase.")
         if ok:
-            embs.append(embedder.embed(audio))
+            embs.append(embedder.embed(live_process(audio, cfg)))
 
     meta = save_profile(embs, cfg)
     print(f"\nSaved {cfg.speaker.profile_path}  (self-similarity mean {meta['self_similarity_mean']:.3f}, "

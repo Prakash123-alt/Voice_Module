@@ -1,0 +1,180 @@
+{
+  "testset": "LibriSpeech dev-clean (CC BY 4.0)",
+  "speakers": 8,
+  "config": {
+    "frame_ms": 32,
+    "device": "cpu",
+    "store_dir": "~/.speakerlock/users",
+    "vad": {
+      "backend": "silero",
+      "threshold": 0.5,
+      "model_path": null
+    },
+    "extractor": {
+      "backend": "voxlock",
+      "precision": "int8-full",
+      "threads": 2,
+      "model_dir": null
+    },
+    "verifier": {
+      "backend": "dvector-onnx",
+      "model_path": null,
+      "threads": 1,
+      "window_s": 1.6,
+      "min_speech_s": 0.6,
+      "hop_ms": 320,
+      "max_age_s": 8.0,
+      "turn_gap_ms": 300,
+      "turn_min_speech_s": 0.4,
+      "turn_hop_ms": 160
+    },
+    "gate": {
+      "open_threshold": 0.72,
+      "close_threshold": 0.62,
+      "hold_ms": 400,
+      "fade_ms": 10,
+      "max_failures": 3,
+      "start_open": false,
+      "closed_set": true,
+      "other_user_margin": 0.03,
+      "strict_turns": true,
+      "turn_grace_ms": 1000,
+      "score_ttl_ms": 2500,
+      "grace_gain": 1.0
+    }
+  },
+  "verification_raw": {
+    "threshold": 0.72,
+    "closed_set": true,
+    "genuine_windows": 463,
+    "impostor_windows": 1071,
+    "FRR": 0.095,
+    "FAR": 0.0,
+    "EER": 0.0236,
+    "EER_threshold": 0.673,
+    "genuine_score_p5_p50": [
+      0.7,
+      0.8
+    ],
+    "impostor_score_p50_p95": [
+      0.53,
+      0.65
+    ]
+  },
+  "verification_extracted": {
+    "threshold": 0.72,
+    "closed_set": true,
+    "genuine_windows": 459,
+    "impostor_windows": 729,
+    "FRR": 0.0523,
+    "FAR": 0.0,
+    "EER": 0.0236,
+    "EER_threshold": 0.685,
+    "genuine_score_p5_p50": [
+      0.72,
+      0.82
+    ],
+    "impostor_score_p50_p95": [
+      0.57,
+      0.67
+    ]
+  },
+  "gate": {
+    "interferer_alone_leak_db": -68.784,
+    "interferer_alone_open_frac": 0.038,
+    "target_alone_keep_db": -0.695,
+    "overlap_si_sdr_in": -0.092,
+    "overlap_si_sdr_out": -1.765,
+    "overlap_si_sdr_gain_db": -1.673,
+    "on_unverified_calls": 8,
+    "per_speaker": [
+      {
+        "id": "1462",
+        "interferer_alone_leak_db": -45.09,
+        "interferer_alone_open_frac": 0.06,
+        "target_alone_keep_db": 0.5,
+        "overlap_si_sdr_in": -0.66,
+        "overlap_si_sdr_out": 5.24,
+        "overlap_si_sdr_gain_db": 5.9
+      },
+      {
+        "id": "1272",
+        "interferer_alone_leak_db": -52.88,
+        "interferer_alone_open_frac": 0.06,
+        "target_alone_keep_db": 0.34,
+        "overlap_si_sdr_in": -0.12,
+        "overlap_si_sdr_out": 4.69,
+        "overlap_si_sdr_gain_db": 4.81
+      },
+      {
+        "id": "1673",
+        "interferer_alone_leak_db": -46.97,
+        "interferer_alone_open_frac": 0.06,
+        "target_alone_keep_db": 0.47,
+        "overlap_si_sdr_in": -3.55,
+        "overlap_si_sdr_out": -5.24,
+        "overlap_si_sdr_gain_db": -1.69
+      },
+      {
+        "id": "174",
+        "interferer_alone_leak_db": -143.37,
+        "interferer_alone_open_frac": 0.0,
+        "target_alone_keep_db": -2.15,
+        "overlap_si_sdr_in": -3.7,
+        "overlap_si_sdr_out": -24.63,
+        "overlap_si_sdr_gain_db": -20.93
+      },
+      {
+        "id": "1919",
+        "interferer_alone_leak_db": -41.56,
+        "interferer_alone_open_frac": 0.03,
+        "target_alone_keep_db": -1.24,
+        "overlap_si_sdr_in": 0.57,
+        "overlap_si_sdr_out": -4.16,
+        "overlap_si_sdr_gain_db": -4.72
+      },
+      {
+        "id": "2078",
+        "interferer_alone_leak_db": -36.62,
+        "interferer_alone_open_frac": 0.02,
+        "target_alone_keep_db": -0.42,
+        "overlap_si_sdr_in": -0.59,
+        "overlap_si_sdr_out": 3.9,
+        "overlap_si_sdr_gain_db": 4.49
+      },
+      {
+        "id": "1988",
+        "interferer_alone_leak_db": -145.59,
+        "interferer_alone_open_frac": 0.0,
+        "target_alone_keep_db": -2.48,
+        "overlap_si_sdr_in": 4.26,
+        "overlap_si_sdr_out": 1.33,
+        "overlap_si_sdr_gain_db": -2.93
+      },
+      {
+        "id": "2086",
+        "interferer_alone_leak_db": -38.19,
+        "interferer_alone_open_frac": 0.06,
+        "target_alone_keep_db": -0.58,
+        "overlap_si_sdr_in": 3.06,
+        "overlap_si_sdr_out": 4.76,
+        "overlap_si_sdr_gain_db": 1.7
+      }
+    ]
+  },
+  "latency": {
+    "frame_ms": 32,
+    "algorithmic_ms": 56.0,
+    "compute_per_frame_ms_p50_p95": [
+      29.21,
+      31.55
+    ],
+    "rtf_frame_by_frame": 0.911,
+    "live_e2e_ms_p50": 84.68,
+    "live_e2e_ms_p95": 110.34,
+    "live_seconds": 20.0,
+    "live_dropped_samples": 0,
+    "budget_ms": 150,
+    "meets_budget_p95": true
+  }
+}

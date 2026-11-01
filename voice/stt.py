@@ -39,7 +39,8 @@ class OpenRouterSTT(STTEngine):
 
 
 class WhisperSTT(STTEngine):
-    def __init__(self, model_size: str = "base.en", compute_type: str = "int8", language: Optional[str] = "en") -> None:
+    def __init__(self, model_size: str = "base.en", compute_type: str = "int8", language: Optional[str] = "en",
+                 beam_size: int = 1, initial_prompt: str = "", hotwords: str = "") -> None:
         import torch
         from faster_whisper import WhisperModel
         device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -48,14 +49,19 @@ class WhisperSTT(STTEngine):
         self._model = WhisperModel(model_size, device=device, compute_type=compute_type,
                                    cpu_threads=os.cpu_count() or 4)
         self.language = language
+        self.beam_size = max(1, beam_size)
+        self.initial_prompt = initial_prompt.strip() or None
+        self.hotwords = hotwords.strip() or None
         self._run(np.zeros(8000, dtype=np.float32))  # warm-up: first inference is several times slower
-        log(logger, logging.INFO, "faster-whisper ready", model=model_size, device=device, compute=compute_type)
+        log(logger, logging.INFO, "faster-whisper ready", model=model_size, device=device, compute=compute_type,
+            beam=self.beam_size, prompt=bool(self.initial_prompt), hotwords=bool(self.hotwords))
 
     def _run(self, audio: np.ndarray) -> str:
         # utterances are already VAD-segmented, so whisper's own VAD and timestamps are skipped
-        segments, _ = self._model.transcribe(audio.astype(np.float32), language=self.language, beam_size=1,
-                                             vad_filter=False, condition_on_previous_text=False,
-                                             without_timestamps=True)
+        segments, _ = self._model.transcribe(audio.astype(np.float32), language=self.language,
+                                             beam_size=self.beam_size, initial_prompt=self.initial_prompt,
+                                             hotwords=self.hotwords, vad_filter=False,
+                                             condition_on_previous_text=False, without_timestamps=True)
         return _segments_text(segments)
 
     async def transcribe(self, audio: np.ndarray) -> str:
@@ -85,4 +91,5 @@ def build_stt(cfg, client: Optional[OpenRouterClient], sample_rate: int) -> STTE
         if client is None:
             raise RuntimeError("stt.mode=openrouter requires an OpenRouter client")
         return OpenRouterSTT(client, cfg.openrouter_model, cfg.language, sample_rate)
-    return WhisperSTT(cfg.local_model, cfg.local_compute_type, cfg.language or None)
+    return WhisperSTT(cfg.local_model, cfg.local_compute_type, cfg.language or None,
+                      cfg.beam_size, cfg.initial_prompt, cfg.hotwords)

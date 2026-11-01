@@ -527,6 +527,9 @@ const SECTIONS = [
     { k: "stt.local_model", label: "Whisper model", type: "select", options: ["tiny.en", "base.en", "small.en", "medium.en", "tiny", "base", "small"], help: "tiny.en ≈ 2x faster than base.en on CPU." },
     { k: "stt.openrouter_model", label: "OpenRouter model", type: "text" },
     { k: "stt.language", label: "Language", type: "text" },
+    { k: "stt.beam_size", label: "Beam size", type: "number", min: 1, max: 10, help: "1 = fastest. 5 = more accurate on names, a little slower." },
+    { k: "stt.hotwords", label: "Hotwords", type: "text", help: "Comma-separated names to favour, e.g. Andhra Pradesh, Telangana." },
+    { k: "stt.initial_prompt", label: "Context prompt", type: "textarea", help: "Example sentence in your topic/vocabulary; biases spelling of names." },
   ]],
   ["Language model", [
     { k: "llm.model", label: "OpenRouter model", type: "text" },

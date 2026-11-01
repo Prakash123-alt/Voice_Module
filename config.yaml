@@ -3,7 +3,7 @@
 audio:
   sample_rate: 16000
   frame_ms: 20
-  input_device: "Realtek"     # null = system default; or index / name substring
+  input_device: 1              # system default / index / name substring
   output_device:
   input_gain: 1.0
   output_gain: 1.0
@@ -23,28 +23,43 @@ denoise:
 vad:
   threshold: 0.5              # Silero speech prob
   min_speech_ms: 120          # speech must persist this long to start a segment
-  hangover_ms: 500            # silence needed to end a segment (avoids clipping)
+  hangover_ms: 400            # silence needed to end a segment; 400 ms balances speed vs
+                             # mid-sentence pauses (350 clipped fragments, 500 felt slow)
   pad_ms: 200                 # pre-roll kept before speech onset
   max_segment_s: 20
 
 speaker:
-  backend: resemblyzer        # resemblyzer | ecapa
+  backend: ecapa              # resemblyzer | ecapa — ECAPA-TDNN (SpeechBrain) is far stronger:
+                             # clone 0.39 vs resemblyzer's 0.79, foreign voice 0.05
   profile_path: profile/voice.npy
-  threshold: 0.663             # cosine similarity; see calibrate.py. Real use: you ≈0.76-0.86, other ≤0.69
+  threshold: 0.54             # cosine similarity; see calibrate.py. ECAPA scale: genuine-you
+                             # ≈0.70-0.79, clone 0.39, other 0.05 (re-enrolled from recording)
   min_segment_ms: 400         # shorter segments are ignored (unreliable embeddings)
 
 barge_in:
   enabled: true
   min_speech_ms: 150          # 150 ms catches short words like "stop" (was 250)
   verify_window_ms: 800       # audio window used for the interrupt embedding (was 1000)
-  threshold: 0.40             # explicit floor; short words score ~0.5, so relax below that
+  threshold: 0.35             # ECAPA scale floor for echo-mixed speech (genuine ≈0.7, clone 0.39)
+
+isolation:
+  enabled: true               # SpeakerLock (speaker_lock/ package): extract + verify only the
+                            # enrolled voice before VAD/STT. Needs its own enrollment first:
+                            #   python -m speakerlock.cli enroll --user me --file <5s clip.wav>
+                            # Runs on a worker thread (~1 extra CPU core); adds ~100 ms of lag.
+  user_id: me
+  store_dir: ~/.speakerlock/users
 
 stt:
   mode: local                 # openrouter | local
   openrouter_model: google/gemini-2.5-flash
   local_model: base.en        # faster-whisper size: tiny.en | base.en | small.en | ...
+                             # base.en = ~1.5-2 s replies; small.en = better words, ~5 s replies
   local_compute_type: int8
   language: en
+  beam_size: 3                # 1 = greedy (fastest); 3 keeps name accuracy at ~2x STT speed
+  initial_prompt: "Questions about India, Andhra Pradesh, Telangana and Indian politics."
+  hotwords: "Andhra Pradesh, Telangana, Chief Minister, Prime Minister, Hyderabad, Amaravati, Visakhapatnam, Vijayawada, Tirupati, Janasena, Pawan Kalyan, Chandrababu Naidu"
 
 llm:
   model: xiaomi/mimo-v2.6-flash   # verified on OpenRouter /models; `python main.py --check` re-verifies

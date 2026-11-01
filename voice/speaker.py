@@ -60,8 +60,10 @@ class ECAPAEmbedder(Embedder):
             from speechbrain.pretrained import EncoderClassifier
         dev = device or ("cuda" if torch.cuda.is_available() else "cpu")
         self._torch = torch
+        from speechbrain.utils.fetching import LocalStrategy
         self._enc = EncoderClassifier.from_hparams(source="speechbrain/spkrec-ecapa-voxceleb",
-                                                   savedir="models/ecapa", run_opts={"device": dev})
+                                                   savedir="models/ecapa", run_opts={"device": dev},
+                                                   local_strategy=LocalStrategy.COPY)  # no symlink privilege on Windows
         log(logger, logging.INFO, "speaker embedder ready", backend="ecapa", device=dev)
 
     def embed(self, audio: np.ndarray) -> np.ndarray:

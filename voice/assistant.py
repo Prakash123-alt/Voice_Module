@@ -33,6 +33,7 @@ from .interfaces import (AECProcessor, AudioInput, AudioOutput, Denoiser, LLMCli
 from .logging_utils import Metrics, log
 from .speaker import cosine_similarity
 from .state import State, StateMachine
+from .isolation import build_isolation
 from .vad import Segmenter
 
 logger = logging.getLogger(__name__)
@@ -74,6 +75,7 @@ class VoiceAssistant:
         self._bg_tasks: set[asyncio.Task] = set()
         self._ref_buf: deque[np.ndarray] = deque(maxlen=100)  # last ~2 s of far-end (TTS) reference
         self._frame_e: deque[tuple[float, float]] = deque(maxlen=100)  # (mic, clean) energy per frame
+        self.isolation = build_isolation(cfg)   # optional SpeakerLock gate; None unless isolation.enabled
 
     # ------------------------------------------------------------------ lifecycle
     async def run(self) -> None:
@@ -102,6 +104,9 @@ class VoiceAssistant:
         self.audio_out.flush()
         self.audio_in.stop()
         self.audio_out.stop()
+        if self.isolation is not None:
+            self.isolation.close()
+            self.isolation = None
         if self._dsp_thread is not None:
             self._dsp_thread.join(timeout=2)
             self._dsp_thread = None
@@ -123,12 +128,21 @@ class VoiceAssistant:
                 pass
 
     def submit_text(self, text: str) -> bool:
-        """Typed input: same pipeline as speech, minus STT/speaker check. Only accepted while LISTENING."""
+        """Typed input: same pipeline as speech, minus STT/speaker check.
+        While LISTENING, start a response. While PROCESSING/SPEAKING, interrupt and start a new one."""
         text = text.strip()
-        if not text or not self.sm.is_(State.LISTENING):
+        if not text:
             return False
-        self.sm.transition(State.PROCESSING, "typed input")
-        self._respond_task = asyncio.create_task(self._respond(None, text=text), name="respond")
+        if not self.sm.is_(State.LISTENING, State.PROCESSING, State.SPEAKING):
+            return False
+        # Show the user message in the UI immediately.
+        self._emit("transcript", role="user", text=text, source="text")
+        if self.sm.is_(State.LISTENING):
+            self.sm.transition(State.PROCESSING, "typed input")
+            self._respond_task = asyncio.create_task(self._respond(None, text=text, emit_user=False), name="respond")
+        else:
+            # Interrupt the ongoing response and start the new question from the event loop.
+            self._post(Event("typed_interrupt", info={"text": text}))
         return True
 
     # ------------------------------------------------------------------ DSP thread
@@ -169,6 +183,12 @@ class VoiceAssistant:
         if ref is not None:
             self._ref_buf.append(ref)
         clean = self.denoiser.process(self.aec.process(mic, ref))
+        if self.isolation is not None:
+            # SpeakerLock worker extracts/verifies off-thread; feed the gated stream onward.
+            # Nothing ready yet -> silence frame (the gated audio simply lags ~100 ms).
+            self.isolation.push(clean)
+            gated = self.isolation.pop()
+            clean = gated if gated is not None else np.zeros_like(clean)
         self._frame_e.append((float(np.dot(mic, mic)), float(np.dot(clean, clean))))
         prob = self.vad.probability(clean)
         ev = self.segmenter.push(clean, prob)
@@ -210,6 +230,8 @@ class VoiceAssistant:
         elif ev.kind == "barge_candidate":
             # verify off the event loop and off the DSP thread, without blocking other events
             self._spawn(self._check_barge_in(ev.audio, ev.info or {}))
+        elif ev.kind == "typed_interrupt":
+            await self._on_typed_interrupt(ev.info["text"])
         elif ev.kind == "segment":
             await self._on_segment(ev.audio, ev.info or {})
 
@@ -286,6 +308,29 @@ class VoiceAssistant:
         self._emit("bargein", stop_ms=stop_ms, was_speaking=was_speaking, **info)
         self.sm.transition(State.LISTENING, "after interrupt")
 
+    async def _on_typed_interrupt(self, text: str) -> None:
+        """Interrupt the assistant while it is generating/speaking and start a new typed response."""
+        if not self.sm.is_(State.PROCESSING, State.SPEAKING):
+            # Assistant may have already finished; start the new question if we can.
+            if self.sm.is_(State.LISTENING):
+                self.sm.transition(State.PROCESSING, "typed input")
+                self._respond_task = asyncio.create_task(self._respond(None, text=text, emit_user=False), name="respond")
+            return
+        t0 = time.perf_counter()
+        was_speaking = self.sm.is_(State.SPEAKING)
+        if was_speaking:
+            self.sm.transition(State.INTERRUPTED, "typed barge-in")
+        self.audio_out.flush()                       # stop sound now
+        await self._cancel_response()                # cancel in-flight LLM + TTS
+        self.audio_out.flush()                       # drain anything that raced in
+        stop_ms = round((time.perf_counter() - t0) * 1000, 1)
+        self.metrics.record("barge_in_stop", stop_ms)
+        log(logger, logging.INFO, "interrupted (typed)", stop_ms=stop_ms, was_speaking=was_speaking)
+        self._emit("bargein", stop_ms=stop_ms, was_speaking=was_speaking, score=None)
+        self.sm.transition(State.LISTENING, "after typed interrupt")
+        self.sm.transition(State.PROCESSING, "typed input")
+        self._respond_task = asyncio.create_task(self._respond(None, text=text, emit_user=False), name="respond")
+
     async def _on_segment(self, audio: np.ndarray, info: dict) -> None:
         if not self.sm.is_(State.LISTENING):
             log(logger, logging.DEBUG, "segment ignored (busy)", state=self.sm.state.value, **info)
@@ -346,7 +391,7 @@ class VoiceAssistant:
         del self.history[:-2 * self.cfg.llm.history_turns]
 
     async def _respond(self, audio: Optional[np.ndarray], end_t: Optional[float] = None,
-                       text: Optional[str] = None) -> None:
+                       text: Optional[str] = None, emit_user: bool = True) -> None:
         end_t = end_t or time.perf_counter()
         first_audio_logged = False
         reply_parts: list[str] = []
@@ -364,7 +409,8 @@ class VoiceAssistant:
                 self.sm.transition(State.LISTENING, "empty transcript")
                 return
             log(logger, logging.INFO, "user", text=text)
-            self._emit("transcript", role="user", text=text, source=turn["source"])
+            if emit_user:
+                self._emit("transcript", role="user", text=text, source=turn["source"])
             sentences: asyncio.Queue[Optional[str]] = asyncio.Queue()
 
             async def speak_worker() -> None:

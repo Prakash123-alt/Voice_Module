@@ -1,0 +1,98 @@
+{
+  "testset": "LibriSpeech dev-clean (CC BY 4.0)",
+  "speakers": 6,
+  "config": {
+    "frame_ms": 32,
+    "device": "cpu",
+    "store_dir": "~/.speakerlock/users",
+    "vad": {
+      "backend": "silero",
+      "threshold": 0.5,
+      "model_path": null
+    },
+    "extractor": {
+      "backend": "voxlock",
+      "precision": "int8-full",
+      "threads": 2,
+      "model_dir": null
+    },
+    "verifier": {
+      "backend": "dvector-onnx",
+      "model_path": null,
+      "threads": 1,
+      "window_s": 1.6,
+      "min_speech_s": 0.6,
+      "hop_ms": 320,
+      "max_age_s": 8.0
+    },
+    "gate": {
+      "open_threshold": 0.72,
+      "close_threshold": 0.62,
+      "hold_ms": 400,
+      "fade_ms": 10,
+      "max_failures": 3,
+      "start_open": false,
+      "closed_set": true
+    }
+  },
+  "verification_raw": {
+    "threshold": 0.72,
+    "closed_set": true,
+    "genuine_windows": 356,
+    "impostor_windows": 580,
+    "FRR": 0.0815,
+    "FAR": 0.0,
+    "EER": 0.017,
+    "EER_threshold": 0.659,
+    "genuine_score_p5_p50": [
+      0.7,
+      0.8
+    ],
+    "impostor_score_p50_p95": [
+      0.52,
+      0.64
+    ]
+  },
+  "verification_extracted": {
+    "threshold": 0.72,
+    "closed_set": true,
+    "genuine_windows": 353,
+    "impostor_windows": 422,
+    "FRR": 0.051,
+    "FAR": 0.0,
+    "EER": 0.0168,
+    "EER_threshold": 0.677,
+    "genuine_score_p5_p50": [
+      0.72,
+      0.83
+    ],
+    "impostor_score_p50_p95": [
+      0.55,
+      0.66
+    ]
+  },
+  "gate": {
+    "interferer_alone_leak_db": -16.958,
+    "interferer_alone_open_frac": 0.654,
+    "target_alone_keep_db": 0.207,
+    "overlap_si_sdr_in": -1.343,
+    "overlap_si_sdr_out": 0.014,
+    "overlap_si_sdr_gain_db": 1.357,
+    "on_unverified_calls": 3
+  },
+  "latency": {
+    "frame_ms": 32,
+    "algorithmic_ms": 56.0,
+    "compute_per_frame_ms_p50_p95": [
+      37.56,
+      43.85
+    ],
+    "rtf_frame_by_frame": 1.204,
+    "live_e2e_ms_p50": 117.81,
+    "live_e2e_ms_p95": 129.09,
+    "live_seconds": 20.0,
+    "live_dropped_samples": 0,
+    "budget_ms": 150,
+    "meets_budget_p95": true
+  }
+}
