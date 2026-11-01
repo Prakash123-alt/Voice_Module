@@ -29,21 +29,20 @@ vad:
   max_segment_s: 20
 
 speaker:
-  backend: ecapa              # resemblyzer | ecapa — ECAPA-TDNN (SpeechBrain) is far stronger:
-                             # clone 0.39 vs resemblyzer's 0.79, foreign voice 0.05
+  backend: resemblyzer        # resemblyzer | ecapa — reverted to the working 18:41 config
   profile_path: profile/voice.npy
-  threshold: 0.54             # cosine similarity; see calibrate.py. ECAPA scale: genuine-you
-                             # ≈0.70-0.79, clone 0.39, other 0.05 (re-enrolled from recording)
+  threshold: 0.55             # cosine similarity; see calibrate.py. Enrollment self-sim ≈0.9, but
+                             # live scores land ~0.1 lower: genuine ≈0.69-0.76, borderline-you 0.62-0.67
   min_segment_ms: 400         # shorter segments are ignored (unreliable embeddings)
 
 barge_in:
   enabled: true
   min_speech_ms: 150          # 150 ms catches short words like "stop" (was 250)
   verify_window_ms: 800       # audio window used for the interrupt embedding (was 1000)
-  threshold: 0.35             # ECAPA scale floor for echo-mixed speech (genuine ≈0.7, clone 0.39)
+  threshold: 0.40             # explicit floor; short words score ~0.5, so relax below that
 
 isolation:
-  enabled: true               # SpeakerLock (speaker_lock/ package): extract + verify only the
+  enabled: false              # SpeakerLock (speaker_lock/ package): extract + verify only the
                             # enrolled voice before VAD/STT. Needs its own enrollment first:
                             #   python -m speakerlock.cli enroll --user me --file <5s clip.wav>
                             # Runs on a worker thread (~1 extra CPU core); adds ~100 ms of lag.
