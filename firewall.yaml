@@ -1,0 +1,79 @@
+# Voice Firewall configuration.
+# Thresholds marked "SET BY calibrate.py" must not be edited by hand;
+# run `python scripts/calibrate.py` to compute them from recorded audio.
+
+guards:
+
+  entry:
+    bind: "127.0.0.1"
+    port: 7730
+    # Allowed origins for the local service.
+    # The service's own UI is served from this origin — it must be allow-listed
+    # so the built-in dashboard's WebSocket/POST requests are accepted.
+    # Foreign web pages (any other Origin) are still rejected.
+    allowed_origins:
+      - "http://127.0.0.1:7730"
+
+  self_sound:
+    # Echo cancellation backend used to remove all PC output from the mic.
+    aec_backend: "webrtc"       # webrtc | gate | none
+    loopback_backend: "wasapi"  # wasapi (Windows) | stub
+    # AEC suppression in dB that triggers the "loopback-suspect" source tag.
+    # SET BY calibrate.py for best accuracy.
+    loopback_suspect_db: 12.0
+
+  speaker:
+    onnx_model: "wespeaker-resnet34"  # wespeaker-resnet34 | ecapa-tdnn
+    profile_path: "profile/owner.npy"
+    # SET BY calibrate.py — leave null until calibrated.
+    threshold: null
+    # Stricter threshold applied while the assistant is speaking (barge-in check).
+    # Must always be >= threshold. SET BY calibrate.py.
+    strict_threshold: null
+    min_segment_ms: 400
+    # observe_mode: log scores but never drop audio. Must be false in production.
+    observe_mode: true
+
+  live_voice:
+    # Anti-spoof / liveness model (Phase 4). WARNING signal only — never drops audio.
+    enabled: false
+    # Score below this triggers a WARNING tag on the segment. Never drops audio alone.
+    warn_below: 0.5
+    # Path to an AASIST-compatible ONNX model file.
+    # null = StubAntispoofModel (score always 0.5, unknown).
+    model_path: null
+
+  words:
+    flag_empty_transcript: true
+    flag_injection_patterns: true
+    # Transcribe twice with different settings and compare (Phase 3).
+    dual_transcribe_on_high_risk: false
+
+  action:
+    # High-risk actions always require an on-screen confirmation.
+    confirm_high_risk: true
+    # After the AI reads untrusted content (web page, email, document),
+    # all non-trivial actions require confirmation (Rule of Two).
+    confirm_after_untrusted_content: true
+    risk_levels:
+      low:    ["open_app", "read_text", "navigate"]
+      medium: ["type_text", "search_web", "copy_to_clipboard"]
+      high:   ["send_message", "send_email", "make_payment",
+               "delete_file", "install_app", "change_settings",
+               "execute_command", "access_credentials"]
+    # Path for the JSONL audit log. null = disable file logging (console only).
+    audit_log_path: null
+
+audio:
+  sample_rate: 16000
+  frame_ms: 20
+  input_device: null      # null = system default; name substring or index also accepted
+  input_gain: 1.0
+
+metrics:
+  ring_buffer_size: 500   # maximum samples kept per stage (bounded memory)
+  target_latency_ms: 150  # added latency budget; logged as a warning if exceeded
+
+logging:
+  level: "INFO"           # DEBUG | INFO | WARNING | ERROR
+  json: false             # true for structured JSON log lines

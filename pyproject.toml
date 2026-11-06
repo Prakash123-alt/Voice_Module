@@ -1,0 +1,116 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "voice-firewall"
+version = "0.1.0"
+description = "On-device voice firewall: who is speaking, where from, what they can make the AI do."
+readme = "README.md"
+license = { file = "LICENSE" }
+requires-python = ">=3.11"
+authors = [{ name = "VoiceFirewall contributors" }]
+keywords = ["voice", "security", "speaker-verification", "firewall", "AI-safety"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "License :: OSI Approved :: Apache Software License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Security",
+    "Topic :: Multimedia :: Sound/Audio :: Speech",
+]
+
+dependencies = [
+    "numpy>=1.26,<3",
+    "pyyaml>=6.0",
+    "python-dotenv>=1.0",
+    "onnxruntime>=1.17",          # ONNX speaker embedder (WeSpeaker / ECAPA-TDNN)
+    "huggingface-hub>=0.21",      # model download/cache
+    "soundfile>=0.12",            # audio file I/O
+]
+
+[project.optional-dependencies]
+mic = [
+    "sounddevice>=0.4.6",         # microphone capture
+    "livekit>=1.0",               # WebRTC AEC3 (Apache-2.0)
+    "silero-vad>=5.1",            # Silero VAD model
+    "torch>=2.2",                 # required by silero-vad
+    "pyrnnoise>=0.4",             # RNNoise denoiser
+]
+stt = [
+    "faster-whisper>=1.0",        # local STT for words guard (MIT)
+]
+service = [
+    "fastapi>=0.110",
+    "uvicorn[standard]>=0.29",
+]
+dev = [
+    "pytest>=8.0",
+    "pytest-asyncio>=0.23",
+    "ruff>=0.4",
+    "mypy>=1.10",
+    "types-PyYAML>=6.0",
+]
+
+[project.scripts]
+vfw-enroll    = "scripts.enroll:main"
+vfw-calibrate = "scripts.calibrate:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["voice_firewall*", "scripts*", "service*"]
+
+# ---------------------------------------------------------------------------
+# Ruff
+# ---------------------------------------------------------------------------
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = [
+    "E", "W",   # pycodestyle
+    "F",        # pyflakes
+    "I",        # isort
+    "UP",       # pyupgrade
+    "B",        # flake8-bugbear
+    "C4",       # flake8-comprehensions
+    "SIM",      # flake8-simplify
+    "TCH",      # flake8-type-checking
+    "RUF",      # ruff-specific
+]
+ignore = [
+    "E501",     # line length handled by formatter
+    "B008",     # function calls in defaults (FastAPI pattern)
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["voice_firewall", "scripts", "service"]
+
+# ---------------------------------------------------------------------------
+# Mypy
+# ---------------------------------------------------------------------------
+[tool.mypy]
+python_version = "3.11"
+strict = true
+warn_return_any = true
+warn_unused_ignores = true
+disallow_any_generics = true
+ignore_missing_imports = false   # all public deps must have stubs or inline types
+
+[[tool.mypy.overrides]]
+module = ["sounddevice", "pyrnnoise.*", "silero_vad", "piper.*", "livekit.*"]
+ignore_missing_imports = true
+
+# ---------------------------------------------------------------------------
+# Pytest
+# ---------------------------------------------------------------------------
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+filterwarnings = [
+    "ignore::DeprecationWarning:torch",
+    "ignore::DeprecationWarning:silero_vad",
+]

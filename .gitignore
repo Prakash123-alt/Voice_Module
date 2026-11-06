@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.venv/
+venv/
+
+# Secrets — never commit
+.env
+.env.*
+!.env.example
+
+# Voice biometric data — never push the owner's voice profile
+profile/
+*.npy
+
+# Node / Vite
+web/node_modules/
+web/dist/
+
+# Local audio corpora (attack harness recordings)
+attack_audio/
+
+# Misc
+.benchmarks/
+*.onnx

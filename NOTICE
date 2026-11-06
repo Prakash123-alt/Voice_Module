@@ -1,0 +1,37 @@
+Voice Firewall
+Copyright 2024 VoiceFirewall contributors
+Licensed under the Apache License, Version 2.0.
+
+---
+
+This project includes code adapted from the VoiceModule project
+(C:\Users\91630\Desktop\Machine_Learning\VoiceVM\Voice_Module),
+which is the original work of the same author.
+
+Adapted files and their origins:
+  voice_firewall/audio/dsp.py      <- voice/dsp.py
+  voice_firewall/audio/mic.py      <- voice/audio_io.py (SoundDeviceInput)
+  voice_firewall/audio/aec.py      <- voice/aec.py (WebRTCAEC, GateAEC, NoAEC)
+  voice_firewall/vad/segmenter.py  <- voice/vad.py (SileroVAD, Segmenter)
+  voice_firewall/_logging.py       <- voice/logging_utils.py
+
+---
+
+Third-party libraries used by this project and their licences:
+
+  livekit          Apache-2.0   https://github.com/livekit/python-sdks
+  faster-whisper   MIT          https://github.com/SYSTRAN/faster-whisper
+  sounddevice      MIT          https://github.com/spatialaudio/python-sounddevice
+  onnxruntime      MIT          https://github.com/microsoft/onnxruntime
+  huggingface-hub  Apache-2.0   https://github.com/huggingface/huggingface_hub
+  numpy            BSD-3        https://github.com/numpy/numpy
+  torch            BSD-3        https://github.com/pytorch/pytorch
+  silero-vad       MIT (GitHub) https://github.com/snakers4/silero-vad
+  pyrnnoise        (see repo)   https://github.com/pengzhendong/pyrnnoise
+  pyyaml           MIT          https://github.com/yaml/pyyaml
+  python-dotenv    BSD-3        https://github.com/theskumar/python-dotenv
+  soundfile        BSD-3        https://github.com/bastibe/python-soundfile
+
+NOTE: resemblyzer is NOT used in this project (declared licence: UNKNOWN).
+Speaker embeddings are produced by ONNX models (WeSpeaker ResNet34 / ECAPA-TDNN)
+downloaded from Hugging Face under their respective model licences.
